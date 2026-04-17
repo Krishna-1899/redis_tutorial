@@ -1,0 +1,29 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    restart: always
+
+  worker:
+    build: .
+    command: ["node", "worker.js"]
+    env_file:
+      - .env
+    restart: always
+
+  notification-service:
+    build: .
+    command: ["node", "notification-service.js"]
+    env_file:
+      - .env
+    restart: always
+
+  analytics-service:
+    build: .
+    command: ["node", "analytics-service.js"]
+    env_file:
+      - .env
+    restart: always
