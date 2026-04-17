@@ -1,29 +1,84 @@
 services:
-  app:
-    build: .
+  # The unified Database Container
+  mysql:
+    image: mysql:8.0
     ports:
-      - "3000:3000"
-    env_file:
-      - .env
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=
+    volumes:
+      - db_data:/var/lib/mysql
+      # Automatically runs our creation script on very first boot!
+      - ./init-scripts.sql:/docker-entrypoint-initdb.d/init-scripts.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 5
     restart: always
 
-  worker:
-    build: .
-    command: ["node", "worker.js"]
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "3001:3001"
     env_file:
       - .env
+    environment:
+      - DB_NAME=auth_db
+      - DB_HOST=mysql
+      - PORT=3001
+      - DB_PASSWORD=password
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: always
+
+  vendor-service:
+    build: ./vendor-service
+    ports:
+      - "3002:3002"
+    env_file:
+      - .env
+    environment:
+      - DB_NAME=vendor_db
+      - DB_HOST=mysql
+      - PORT=3002
+      - DB_PASSWORD=password
+    depends_on:
+      mysql:
+        condition: service_healthy
     restart: always
 
   notification-service:
-    build: .
-    command: ["node", "notification-service.js"]
+    build: ./notification-service
+    ports:
+      - "3003:3003"
     env_file:
       - .env
+    environment:
+      - DB_NAME=notification_db
+      - DB_HOST=mysql
+      - PORT=3003
+      - DB_PASSWORD=password
+    depends_on:
+      mysql:
+        condition: service_healthy
     restart: always
 
-  analytics-service:
-    build: .
-    command: ["node", "analytics-service.js"]
+  meal-plan-service:
+    build: ./meal-plan-service
+    ports:
+      - "3004:3004"
     env_file:
       - .env
+    environment:
+      - DB_NAME=meal_plan_db
+      - DB_HOST=mysql
+      - PORT=3004
+      - DB_PASSWORD=password
+    depends_on:
+      mysql:
+        condition: service_healthy
     restart: always
+
+volumes:
+  db_data:
